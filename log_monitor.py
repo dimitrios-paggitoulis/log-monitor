@@ -127,7 +127,7 @@ def main() -> None:
     Reads the log file, parses entries, monitors jobs, and writes a report
     of warnings and errors based on job durations.
     """
-    print('--- Start processing!')
+    print('--- Start processing!!')
     print('--- parse_log calling get_log_lines to open the file and return lines, then parses log lines and returns a list of log entry dictionaries.')
     entries = parse_log(get_log_lines(LOG_FILE))
     print('--- Calling monitor_jobs to track jobs by PID, calculate durations and return a list of job reports. ')
