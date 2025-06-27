@@ -60,5 +60,21 @@ class TestLogMonitor(unittest.TestCase):
         self.assertEqual(len(entries), 1)
         self.assertEqual(entries[0]["pid"], "2")
 
+    def test_monitor_jobs(self):
+        """
+        Test that job durations are calculated correctly and jobs are matched by PID.
+
+        Verifies that the number of reports matches the number of jobs,
+        and that the durations are as expected for each job.
+        """
+        reports = log_monitor.monitor_jobs(self.entries)
+        self.assertEqual(len(reports), 3)
+        self.assertEqual(reports[0]["pid"], "1")
+        self.assertEqual(reports[1]["pid"], "2")
+        self.assertEqual(reports[2]["pid"], "3")
+        self.assertEqual(reports[0]["duration"], timedelta(minutes=4, seconds=59))
+        self.assertEqual(reports[1]["duration"], timedelta(minutes=6))
+        self.assertEqual(reports[2]["duration"], timedelta(minutes=11))
+
 if __name__ == "__main__":
     unittest.main()
