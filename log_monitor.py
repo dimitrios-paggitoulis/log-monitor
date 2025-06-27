@@ -60,6 +60,66 @@ def parse_log(lines: List[str]) -> List[Dict[str, Any]]:
         print('Current row:', row)
     return entries
 
+def monitor_jobs(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Tracks jobs by PID, calculates durations, and returns a list of job reports.
+    For each job, matches START and END events by PID, calculates the duration,
+    and collects job information for reporting.
+    
+    Args:
+        entries (List[Dict[str, Any]]): List of parsed log entries.
+   
+    Returns:
+        List[Dict[str, Any]]: List of job report dictionaries, each with keys:
+            'pid', 'description', 'start_time', 'end_time', 'duration'
+    """
+    jobs: Dict[str, Dict[str, Any]] = {}
+    reports: List[Dict[str, Any]] = []
+    for entry in entries:
+        pid = entry["pid"]
+        print('Processing job PID: ', entry["pid"], 'with description:', entry['description'], ' and event: ', entry['event'])
+        if entry["event"] == "START":
+            jobs[pid] = {
+                "start_time": entry["time"],
+                "description": entry["description"]
+            }
+        elif entry["event"] == "END" and pid in jobs:
+            start_time = jobs[pid]["start_time"]
+            end_time = entry["time"]
+            duration = end_time - start_time
+            reports.append({
+                "pid": pid,
+                "description": jobs[pid]["description"],
+                "start_time": start_time,
+                "end_time": end_time,
+                "duration": duration
+            })
+            del jobs[pid]
+    return reports
+
+def log_report(reports: List[Dict[str, Any]], report_file: str) -> None:
+    """
+    Writes warnings and errors to the report file based on job durations.
+
+    For each job report:
+        - Logs a warning if the job took longer than 5 minutes.
+        - Logs an error if the job took longer than 10 minutes.
+
+    Args:
+        reports (List[Dict[str, Any]]): List of job report dictionaries.
+        report_file (str): Path to the output report file.
+    """
+    with open(report_file, "w") as f:
+        for job in reports:
+            duration_str = str(job["duration"])
+            print('Checking PID ', job["pid"], ' task duration: ', job["duration"])
+            if job["duration"] > ERROR_THRESHOLD:
+                f.write(f"ERROR: Job {job['pid']} ({job['description']}) took {duration_str}\n")
+                print(f"ERROR: Job {job['pid']} ({job['description']}) took {duration_str}\n")
+            elif job["duration"] > WARNING_THRESHOLD:
+                f.write(f"WARNING: Job {job['pid']} ({job['description']}) took {duration_str}\n")
+                print(f"WARNING: Job {job['pid']} ({job['description']}) took {duration_str}\n")
+
 def main() -> None:
     """
     Main entry point for the log monitoring application.
@@ -70,6 +130,11 @@ def main() -> None:
     print('--- Start processing!')
     print('--- parse_log calling get_log_lines to open the file and return lines, then parses log lines and returns a list of log entry dictionaries.')
     entries = parse_log(get_log_lines(LOG_FILE))
-    
+    print('--- Calling monitor_jobs to track jobs by PID, calculate durations and return a list of job reports. ')
+    reports = monitor_jobs(entries)
+    print('--- Calling log_report to write warnings and errors to the report file based on job durations.')
+    log_report(reports, REPORT_FILE)
+    print(f"Monitoring complete. See {REPORT_FILE} for warnings and errors.")
+
 if __name__ == "__main__":
     main()
