@@ -60,6 +60,43 @@ def parse_log(lines: List[str]) -> List[Dict[str, Any]]:
         print('Current row:', row)
     return entries
 
+def monitor_jobs(entries: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Tracks jobs by PID, calculates durations, and returns a list of job reports.
+    For each job, matches START and END events by PID, calculates the duration,
+    and collects job information for reporting.
+    
+    Args:
+        entries (List[Dict[str, Any]]): List of parsed log entries.
+   
+    Returns:
+        List[Dict[str, Any]]: List of job report dictionaries, each with keys:
+            'pid', 'description', 'start_time', 'end_time', 'duration'
+    """
+    jobs: Dict[str, Dict[str, Any]] = {}
+    reports: List[Dict[str, Any]] = []
+    for entry in entries:
+        pid = entry["pid"]
+        print('Processing job PID: ', entry["pid"], 'with description:', entry['description'], ' and event: ', entry['event'])
+        if entry["event"] == "START":
+            jobs[pid] = {
+                "start_time": entry["time"],
+                "description": entry["description"]
+            }
+        elif entry["event"] == "END" and pid in jobs:
+            start_time = jobs[pid]["start_time"]
+            end_time = entry["time"]
+            duration = end_time - start_time
+            reports.append({
+                "pid": pid,
+                "description": jobs[pid]["description"],
+                "start_time": start_time,
+                "end_time": end_time,
+                "duration": duration
+            })
+            del jobs[pid]
+    return reports
+
 def main() -> None:
     """
     Main entry point for the log monitoring application.
@@ -70,6 +107,8 @@ def main() -> None:
     print('--- Start processing!')
     print('--- parse_log calling get_log_lines to open the file and return lines, then parses log lines and returns a list of log entry dictionaries.')
     entries = parse_log(get_log_lines(LOG_FILE))
+    print('--- Calling monitor_jobs to track jobs by PID, calculate durations and return a list of job reports. ')
+    reports = monitor_jobs(entries)
     
 if __name__ == "__main__":
     main()
