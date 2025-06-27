@@ -33,8 +33,32 @@ class TestLogMonitor(unittest.TestCase):
             {"time": datetime.strptime("14:11:00", "%H:%M:%S"), "description": "Job C", "event": "END", "pid": "3"},
         ]
 
-    def test_add(self):
-        pass
+    def test_parse_log_file_valid(self):
+        """
+        Test that valid CSV log lines are parsed correctly.
+
+        Ensures that each field is correctly extracted and that the event, PID, and description
+        match the expected values.
+        """
+        log_text = ["12:00:00,Job A,START,1", "12:04:59,Job A,END,1"]
+        entries = log_monitor.parse_log(log_text)
+        self.assertEqual(len(entries), 2)
+        self.assertEqual(entries[0]["event"], "START")
+        self.assertEqual(entries[1]["event"], "END")
+        self.assertEqual(entries[0]["pid"], "1")
+        self.assertEqual(entries[0]["description"], "Job A")
+
+    def test_parse_log_file_malformed(self):
+        """
+        Test that malformed lines are skipped and only valid lines are parsed.
+
+        Ensures that lines with missing fields or bad formatting are ignored,
+        and only valid entries are returned.
+        """
+        log_text = ["12:00:00,Job A,START", "badline", "12:01:00,Job B,END,2"]
+        entries = log_monitor.parse_log(log_text)
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["pid"], "2")
 
 if __name__ == "__main__":
     unittest.main()

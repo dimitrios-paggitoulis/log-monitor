@@ -8,6 +8,58 @@ TIME_FORMAT = "%H:%M:%S"
 WARNING_THRESHOLD = timedelta(minutes=5)
 ERROR_THRESHOLD = timedelta(minutes=10)
 
+def get_log_lines(filename: str) -> List[str]:
+    """
+    Opens the log file and reads all lines.
+    
+    Args:
+        filename (str): The path to the log file.
+    
+    Returns:
+        List[str]: A list of lines from the log file.
+    """
+    with open(filename, newline='') as f:
+        return f.readlines()
+
+def parse_log(lines: List[str]) -> List[Dict[str, Any]]:
+    """
+    Parses log lines and returns a list of log entry dictionaries.
+    
+    Each log entry is expected to be a CSV row with the following fields:
+        - time (str): Timestamp in HH:MM:SS format
+        - description (str): Description of the job
+        - event (str): Either 'START' or 'END'
+        - pid (str): Process/job ID
+    
+    Args:
+        lines (List[str]): List of log lines to parse.
+    
+    Returns:
+        List[Dict[str, Any]]: List of parsed log entries, each as a dictionary with keys:
+            'time' (datetime), 'description' (str), 'event' (str), 'pid' (str)
+    """
+    entries: List[Dict[str, Any]] = []
+    reader = csv.reader(lines)
+    for row in reader:
+        # Expecting: HH:MM:SS, Description, START/END, PID
+        if len(row) < 4:
+            print('Skipping malformed line: ', row)
+            continue  # skip malformed lines
+        time_str, description, event, pid = row
+        try:
+            time = datetime.strptime(time_str.strip(), TIME_FORMAT)
+        except ValueError:
+            print('Skiping line due to invalid time format: ', row)
+            continue  # skip lines with invalid time format
+        entries.append({
+            "time": time,
+            "description": description.strip(),
+            "event": event.strip().upper(),
+            "pid": pid.strip()
+        })
+        print('Current row:', row)
+    return entries
+
 def main() -> None:
     """
     Main entry point for the log monitoring application.
@@ -15,6 +67,9 @@ def main() -> None:
     Reads the log file, parses entries, monitors jobs, and writes a report
     of warnings and errors based on job durations.
     """
-
+    print('--- Start processing!')
+    print('--- parse_log calling get_log_lines to open the file and return lines, then parses log lines and returns a list of log entry dictionaries.')
+    entries = parse_log(get_log_lines(LOG_FILE))
+    
 if __name__ == "__main__":
     main()
