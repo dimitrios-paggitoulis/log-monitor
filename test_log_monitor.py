@@ -32,6 +32,9 @@ class TestLogMonitor(unittest.TestCase):
             {"time": datetime.strptime("14:00:00", "%H:%M:%S"), "description": "Job C", "event": "START", "pid": "3"},
             {"time": datetime.strptime("14:11:00", "%H:%M:%S"), "description": "Job C", "event": "END", "pid": "3"},
         ]
-        
+
+    def test_add(self):
+        pass
+
 if __name__ == "__main__":
     unittest.main()
